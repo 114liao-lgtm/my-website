@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="bauhaus">
+  <title>全國各縣市消防事故案件統計互動儀表板</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* 1. Bauhaus surfaces & ink */
+      --background: #f5f0e8;
+      --surface-container-low: #f2ede5;
+      --surface-container: #eee9e0;
+      --surface-container-high: #e8e3da;
+      --surface-card: #ffffff;
+
+      --on-surface: #1a1a1a;
+      --on-surface-variant: #4a4a4a;
+
+      --outline: #1a1a1a;
+      --outline-variant: #d0cbc3;
+
+      /* Bauhaus primary accents */
+      --primary: #1a1a1a;
+      --on-primary: #ffffff;
+      --primary-container: #ffcc00;
+      --on-primary-container: #1a1a1a;
+      --secondary: #e63b2e;
+      --tertiary: #0055ff;
+      --on-tertiary: #ffffff;
+      --error: #cc0000;
+      --on-error: #ffffff;
+
+      /* Semantic */
+      --positive: #007a52;
+      --on-positive: #ffffff;
+      --warning: #b34700;
+      --focus: #0055ff;
+
+      /* Vivid category tag colors (all >= 4.5:1 AA contrast) */
+      --cat-traffic: #cc0000;
+      --cat-ems: #0055ff;
+      --cat-fire: #c2410c;
+      --cat-medical: #7c2d9c;
+      --cat-training: #007a52;
+      --cat-mountain: #006d77;
+      --cat-other: #1a1a1a;
+
+      /* Risk tag colors */
+      --risk-traffic: #cc0000;
+      --risk-injury: #007a52;
+      --risk-health: #7c2d9c;
+      --risk-heat: #ffcc00;
+      --risk-gear: #0055ff;
+
+      /* Data series palette */
+      --data-1: #e63b2e;
+      --data-2: #0055ff;
+      --data-3: #007a52;
+      --data-4: #c2410c;
+      --data-5: #7c2d9c;
+      --data-6: #9a7300;
+      --data-7: #1a1a1a;
+      --data-context: #b5afa5;
+
+      /* Fonts */
+      --font-headline: 'Noto Sans TC', 'Space Grotesk', sans-serif;
+      --font-body: 'Noto Sans TC', 'Inter', sans-serif;
+      --font-label: 'Space Grotesk', 'Noto Sans TC', sans-serif;
+
+      /* Radii */
+      --rounded: 0.125rem;
+      --rounded-lg: 0.25rem;
+      --rounded-full: 0.75rem;
+
+      /* Style effects */
+      --border-thick: 3px solid var(--outline);
+      --border-medium: 2px solid var(--outline);
+      --border-hair: 1px solid var(--outline-variant);
+      --offset-shadow: 5px 5px 0 var(--outline);
+      --offset-shadow-sm: 3px 3px 0 var(--outline);
+      --rule-heavy: 6px solid var(--outline);
+
+      /* Type scale (Dashboard) */
+      --display-size: clamp(1.85rem, 1.35rem + 1.8vw, 2.75rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.78rem;
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+    }
+    header { position: static !important; }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-xl);
+      padding: var(--space-lg);
+      max-width: 1280px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Bauhaus Block */
+    .block {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      padding: var(--space-lg);
+    }
+
+    .block-soft {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-container-low);
+      padding: var(--space-lg);
+    }
+
+    /* Title Header */
+    .hero-header {
+      border-top: var(--space-sm) solid var(--secondary);
+      padding-top: var(--space-lg);
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: end;
+    }
+
+    .kicker-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      background: var(--primary);
+      color: var(--on-primary);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+    }
+
+    .kicker-blue {
+      background: var(--tertiary);
+      color: var(--on-tertiary);
+    }
+
+    .hero-title {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: var(--display-size);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      margin: 0 0 var(--space-sm) 0;
+      color: var(--on-surface);
+    }
+
+    .hero-title mark {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      padding: 0 var(--space-xs);
+      box-decoration-break: clone;
+    }
+
+    .hero-lede {
+      margin: 0;
+      color: var(--on-surface-variant);
+      max-width: 65ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow-sm);
+      cursor: pointer;
+      transition: transform var(--dur-micro) var(--ease-out),
+                  box-shadow var(--dur-micro) var(--ease-out),
+                  background-color var(--dur-micro) var(--ease-out),
+                  color var(--dur-micro) var(--ease-out);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .btn-secondary {
+      background: var(--surface-card);
+      color: var(--on-surface);
+    }
+
+    .btn-blue {
+      background: var(--tertiary);
+      color: var(--on-tertiary);
+    }
+
+    .btn-danger {
+      background: var(--surface-card);
+      color: var(--error);
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--primary);
+      color: var(--on-primary);
+      transform: translate(-2px, -2px);
+      box-shadow: var(--offset-shadow);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translate(3px, 3px);
+      box-shadow: none;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-sm {
+      min-height: 36px;
+      padding: var(--space-xs) var(--space-sm);
+      font-size: 0.82rem;
+      border-width: 2px;
+      box-shadow: 2px 2px 0 var(--outline);
+    }
+
+    /* Section Header */
+    .section-open {
+      --section-accent: var(--tertiary);
+      border-top: var(--space-sm) solid var(--section-accent);
+      padding-top: var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .section-open.accent-red { --section-accent: var(--secondary); }
+    .section-open.accent-blue { --section-accent: var(--tertiary); }
+    .section-open.accent-yellow { --section-accent: var(--primary-container); }
+    .section-open.accent-black { --section-accent: var(--primary); }
+
+    .section-title {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: var(--headline-size);
+      line-height: 1.2;
+      margin: var(--space-xs) 0 0 0;
+    }
+
+    .section-sub {
+      margin: var(--space-xs) 0 0 0;
+      color: var(--on-surface-variant);
+      font-size: 0.9rem;
+    }
+
+    /* KPI Strip */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-lg);
+    }
+
+    .kpi-card {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-xs);
+      position: relative;
+      transition: transform var(--dur-short) var(--ease-out);
+    }
+
+    .kpi-card.kpi-highlight {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .kpi-card.kpi-red { border-top: 8px solid var(--secondary); }
+    .kpi-card.kpi-blue { border-top: 8px solid var(--tertiary); }
+    .kpi-card.kpi-green { border-top: 8px solid var(--cat-training); }
+    .kpi-card.kpi-black { border-top: 8px solid var(--primary); }
+
+    .kpi-label {
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-xs);
+    }
+
+    .kpi-highlight .kpi-label {
+      color: var(--on-primary-container);
+    }
+
+    .kpi-value {
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: clamp(2rem, 1.5rem + 1.5vw, 2.75rem);
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+
+    .kpi-foot {
+      font-size: 0.85rem;
+      color: var(--on-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .kpi-highlight .kpi-foot {
+      color: var(--on-primary-container);
+    }
+
+    .kpi-action-link {
+      background: var(--primary);
+      color: var(--on-primary);
+      border: 2px solid var(--outline);
+      padding: 2px var(--space-sm);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: var(--rounded);
+    }
+
+    .kpi-action-link:hover {
+      background: var(--tertiary);
+      color: var(--on-tertiary);
+    }
+
+    /* Filter Toolbar & County Chip Matrix */
+    .filter-panel {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-container);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .filter-controls-row {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr 0.9fr auto;
+      gap: var(--space-md);
+      align-items: end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .field-label {
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      color: var(--on-surface);
+    }
+
+    .input-control, .select-control, .textarea-control {
+      width: 100%;
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-card);
+      color: var(--on-surface);
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      transition: box-shadow var(--dur-micro) var(--ease-out),
+                  border-color var(--dur-micro) var(--ease-out);
+    }
+
+    .select-control {
+      padding-right: 2rem;
+    }
+
+    .textarea-control {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .input-control:focus, .select-control:focus, .textarea-control:focus {
+      outline: none;
+      border-color: var(--tertiary);
+      box-shadow: 0 0 0 3px var(--primary-container);
+    }
+
+    .county-chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .county-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      min-height: 40px;
+      padding: var(--space-xs) var(--space-sm);
+      background: var(--surface-card);
+      color: var(--on-surface);
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      box-shadow: 2px 2px 0 var(--outline);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform var(--dur-micro) var(--ease-out),
+                  background-color var(--dur-micro) var(--ease-out);
+    }
+
+    .county-chip:hover {
+      transform: translate(-1px, -1px);
+      background: var(--surface-container-high);
+    }
+
+    .county-chip.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      box-shadow: 3px 3px 0 var(--outline);
+    }
+
+    .county-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 22px;
+      padding: 0 6px;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-family: var(--font-label);
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+      border-radius: var(--rounded);
+    }
+
+    .county-chip.active .county-count {
+      background: var(--tertiary);
+      color: var(--on-tertiary);
+    }
+
+    .active-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: var(--border-medium);
+    }
+
+    .filter-summary-text {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    /* Charts Layout (Asymmetric 2-col and full-width) */
+    .viz-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: var(--space-lg);
+      align-items: stretch;
+    }
+
+    .chart-card {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .chart-card-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      border-bottom: var(--border-thick);
+      padding-bottom: var(--space-sm);
+    }
+
+    .chart-card-title {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 1.15rem;
+      margin: 0;
+    }
+
+    .chart-box {
+      position: relative;
+      width: 100%;
+      min-height: 330px;
+      height: 340px;
+    }
+
+    .chart-box-tall {
+      position: relative;
+      width: 100%;
+      min-height: 360px;
+      height: 380px;
+    }
+
+    .tab-strip {
+      display: inline-flex;
+      gap: var(--space-xs);
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      min-height: 36px;
+      padding: var(--space-xs) var(--space-sm);
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      background: var(--surface-container-low);
+      color: var(--on-surface);
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      box-shadow: 2px 2px 0 var(--outline);
+    }
+
+    /* Interactive Legend & Risk Progress Bars */
+    .type-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-sm);
+    }
+
+    .legend-pill-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-xs);
+      min-height: 40px;
+      padding: var(--space-xs) var(--space-sm);
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      background: var(--surface-card);
+      color: var(--on-surface);
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: transform var(--dur-micro) var(--ease-out);
+    }
+
+    .legend-pill-btn:hover {
+      transform: translate(-1px, -1px);
+      background: var(--surface-container);
+    }
+
+    .legend-pill-btn.active {
+      background: var(--primary-container);
+      box-shadow: 2px 2px 0 var(--outline);
+    }
+
+    .swatch-box {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--outline);
+      flex-shrink: 0;
+    }
+
+    .risk-bars-list {
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .risk-bar-item {
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      cursor: pointer;
+      transition: transform var(--dur-micro) var(--ease-out),
+                  background-color var(--dur-micro) var(--ease-out);
+    }
+
+    .risk-bar-item:hover {
+      transform: translate(-2px, -2px);
+      background: var(--surface-card);
+      box-shadow: 3px 3px 0 var(--outline);
+    }
+
+    .risk-bar-item.active {
+      background: var(--primary-container);
+      box-shadow: 3px 3px 0 var(--outline);
+    }
+
+    .risk-bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xs);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .risk-track {
+      width: 100%;
+      height: 16px;
+      background: var(--surface-card);
+      border: var(--border-medium);
+      overflow: hidden;
+    }
+
+    .risk-fill {
+      height: 100%;
+      border-right: 2px solid var(--outline);
+      transition: width var(--dur-long) var(--ease-out);
+    }
+
+    /* Color Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border: var(--border-medium);
+      border-radius: var(--rounded);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.78rem;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .badge-traffic { background: var(--cat-traffic); color: var(--on-error); }
+    .badge-ems { background: var(--cat-ems); color: var(--on-tertiary); }
+    .badge-fire { background: var(--cat-fire); color: var(--on-primary); }
+    .badge-medical { background: var(--cat-medical); color: var(--on-primary); }
+    .badge-training { background: var(--cat-training); color: var(--on-positive); }
+    .badge-mountain { background: var(--cat-mountain); color: var(--on-primary); }
+    .badge-other { background: var(--cat-other); color: var(--on-primary); }
+
+    .badge-risk-traffic { background: var(--risk-traffic); color: var(--on-error); }
+    .badge-risk-injury { background: var(--risk-injury); color: var(--on-positive); }
+    .badge-risk-health { background: var(--risk-health); color: var(--on-primary); }
+    .badge-risk-heat { background: var(--risk-heat); color: var(--on-primary-container); }
+    .badge-risk-gear { background: var(--risk-gear); color: var(--on-tertiary); }
+
+    .badge-user {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .badge-county {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+    }
+
+    /* Spotlights Grid */
+    .spotlight-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+
+    .spotlight-card {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .spotlight-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .spotlight-desc {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--on-surface);
+    }
+
+    .reminder-box {
+      margin-top: auto;
+      padding: var(--space-sm);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border: var(--border-medium);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    /* Add Event Form */
+    .form-card {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      padding: var(--space-lg);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+
+    .form-span-2 { grid-column: span 2; }
+    .form-span-4 { grid-column: span 4; }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: var(--border-medium);
+    }
+
+    .form-status {
+      font-weight: 700;
+      font-size: 0.9rem;
+      min-height: 24px;
+    }
+
+    .form-status.is-error { color: var(--error); }
+    .form-status.is-success { color: var(--positive); }
+
+    /* Data Table & Card View */
+    .table-wrap {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-card);
+      overflow-x: auto;
+    }
+
+    table.incident-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      min-width: 780px;
+    }
+
+    table.incident-table thead th {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: var(--border-thick);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+    }
+
+    .sort-btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      font: inherit;
+      font-weight: 700;
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sort-btn:hover {
+      color: var(--tertiary);
+    }
+
+    table.incident-table tbody td {
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: var(--border-hair);
+      vertical-align: top;
+      font-size: 0.92rem;
+    }
+
+    table.incident-table tbody tr:hover {
+      background: var(--surface-container-low);
+    }
+
+    table.incident-table tbody tr.is-custom-row {
+      background: var(--surface-container);
+    }
+
+    .num-cell {
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .cards-view-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+
+    .case-card {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow-sm);
+      background: var(--surface-card);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .case-card.is-custom {
+      background: var(--surface-container-low);
+    }
+
+    .case-card-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-xs);
+      border-bottom: var(--border-medium);
+      padding-bottom: var(--space-xs);
+    }
+
+    .empty-state {
+      border: var(--border-thick);
+      border-radius: var(--rounded);
+      box-shadow: var(--offset-shadow);
+      background: var(--surface-container-low);
+      padding: var(--space-xl);
+      text-align: left;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    .source-footer {
+      border-top: var(--rule-heavy);
+      padding-top: var(--space-md);
+      padding-bottom: var(--space-lg);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-md);
+      color: var(--on-surface-variant);
+      font-size: 0.85rem;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1024px) {
+      .hero-header { grid-template-columns: 1fr; }
+      .hero-actions { justify-content: flex-start; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filter-controls-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .viz-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .form-span-4 { grid-column: span 2; }
+    }
+
+    @media (max-width: 640px) {
+      .page-grid { padding: var(--space-md); gap: var(--space-lg); }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .filter-controls-row { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-span-2, .form-span-4 { grid-column: span 1; }
+      .chart-box, .chart-box-tall { min-height: 280px; height: 290px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<main class="page-grid">
+
+  <!-- 1. Hero Header -->
+  <header class="hero-header">
+    <div>
+      <div class="kicker-row">
+        <span class="kicker"><i data-lucide="shield-alert" width="14" height="14" aria-hidden="true"></i> 115年9月1日 — 11月5日</span>
+        <span class="kicker kicker-blue"><i data-lucide="activity" width="14" height="14" aria-hidden="true"></i> 全國縣市消防安全統計</span>
+      </div>
+      <h1 class="hero-title">各縣市消防<mark>事故案件</mark>互動儀表板</h1>
+      <p class="hero-lede">
+        彙整全國 17 縣市共 62 件消防勤務與訓練事故紀錄，涵蓋出勤車禍、救援受傷、熱衰竭／中暑及 SCBA 設備故障等風險樣態；支援縣市點擊交叉篩選、視覺化圖表分析與即時新增通報紀錄。
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="btn btn-primary" onclick="scrollToForm()">
+        <i data-lucide="plus-square" width="18" height="18" aria-hidden="true"></i>
+        新增事故案件
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="exportCsv()">
+        <i data-lucide="download" width="18" height="18" aria-hidden="true"></i>
+        匯出 CSV
+      </button>
+      <button type="button" id="reset-custom-btn" class="btn btn-danger" onclick="handleResetCustom(this)">
+        <i data-lucide="rotate-ccw" width="18" height="18" aria-hidden="true"></i>
+        重設新增紀錄
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. KPI Summary Cards -->
+  <section aria-label="核心統計指標">
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-highlight">
+        <div class="kpi-label">
+          <span>目前篩選案件總數</span>
+          <i data-lucide="layers" width="18" height="18" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-value" id="kpi-total">62</div>
+        <div class="kpi-foot">
+          <span id="kpi-total-sub">原始統計 62 件 · 新增 0 件</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-red">
+        <div class="kpi-label">
+          <span>車禍案件佔比</span>
+          <i data-lucide="car-front" width="18" height="18" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-value" id="kpi-traffic">26 件</div>
+        <div class="kpi-foot">
+          <span id="kpi-traffic-pct">佔當前範圍 41.9%</span>
+          <button type="button" class="kpi-action-link" onclick="quickFilterType('車禍案件')">只看車禍</button>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label">
+          <span>高風險警示（熱衰竭/設備/提醒）</span>
+          <i data-lucide="flame" width="18" height="18" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-value" id="kpi-alert">8 件</div>
+        <div class="kpi-foot">
+          <span id="kpi-alert-sub">含熱衰竭、SCBA 異常等</span>
+          <button type="button" class="kpi-action-link" onclick="toggleReminderOnly()">切換提醒案</button>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-black">
+        <div class="kpi-label">
+          <span>涵蓋縣市與最高發地區</span>
+          <i data-lucide="map-pin" width="18" height="18" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-value" id="kpi-counties">17 縣市</div>
+        <div class="kpi-foot">
+          <span id="kpi-top-county">臺北市最多 (11 件)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Interactive County & Multi-Dimension Filter Panel -->
+  <section aria-label="縣市統計與交叉篩選">
+    <div class="section-open accent-blue">
+      <div>
+        <span class="kicker kicker-blue">STEP 01 · 縣市篩選與條件搜尋</span>
+        <h2 class="section-title">縣市案件分布與即時篩選器</h2>
+        <p class="section-sub">點擊任一縣市標籤或下方篩選條件，所有圖表與明細將同步連動更新。</p>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllFilters()">
+        <i data-lucide="filter-x" width="16" height="16" aria-hidden="true"></i>
+        清除所有篩選
+      </button>
+    </div>
+
+    <div class="filter-panel">
+      <div class="filter-controls-row">
+        <div class="field-group">
+          <label class="field-label" for="search-input">關鍵字搜尋（分隊、事故內容、SCBA、熱衰竭…）</label>
+          <input id="search-input" class="input-control" type="search" placeholder="輸入關鍵字，例如：救護車、熱衰竭、鐵皮" oninput="onFilterInput()">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="type-select">事故類型（官方分類）</label>
+          <select id="type-select" class="select-control" onchange="onFilterInput()">
+            <option value="ALL">全部事故類型</option>
+            <option value="車禍案件">車禍案件</option>
+            <option value="救護案件">救護案件</option>
+            <option value="救災案件">救災案件</option>
+            <option value="其他">其他</option>
+            <option value="訓練案件">訓練案件</option>
+            <option value="執(備)勤身體不適">執(備)勤身體不適</option>
+            <option value="山搜案件">山搜案件</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="risk-select">關鍵風險情境</label>
+          <select id="risk-select" class="select-control" onchange="onFilterInput()">
+            <option value="ALL">全部風險情境</option>
+            <option value="出勤/公務車禍">出勤/公務車禍</option>
+            <option value="執勤/救援受傷">執勤/救援受傷</option>
+            <option value="突發身體不適">突發身體不適</option>
+            <option value="熱衰竭/體力透支">熱衰竭/體力透支</option>
+            <option value="設備/建物風險">設備/建物風險</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="month-select">發生月份</label>
+          <select id="month-select" class="select-control" onchange="onFilterInput()">
+            <option value="ALL">全期間 (9–11月)</option>
+            <option value="2026-09">2026年 9月</option>
+            <option value="2026-10">2026年 10月</option>
+            <option value="2026-11">2026年 11月</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="county-select">縣市下拉快選</label>
+          <select id="county-select" class="select-control" onchange="onCountySelectChange(this.value)">
+            <option value="ALL">全國各縣市</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label" style="margin-bottom: var(--space-xs);">各縣市事故件數快選標籤（點擊切換單一縣市）：</div>
+        <div id="county-chips" class="county-chips-wrap"></div>
+      </div>
+
+      <div class="active-filter-bar">
+        <span id="filter-status-summary" class="filter-summary-text">目前顯示：全部 62 件事故紀錄</span>
+        <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center;">
+          <button type="button" id="reminder-filter-btn" class="tab-btn" onclick="toggleReminderOnly()">
+            僅看附有安全提醒之案件
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. County Chart & Type/Risk Visualizations -->
+  <section aria-label="事故類型與縣市視覺化統計">
+    <div class="section-open accent-red">
+      <div>
+        <span class="kicker">STEP 02 · 多維度視覺化分析</span>
+        <h2 class="section-title">縣市分布、事故類型與風險情境圖表</h2>
+        <p class="section-sub">支援直接點擊圖表長條或類型圖例進行交叉篩選，快速辨識高發風險。</p>
+      </div>
+    </div>
+
+    <!-- Row 1: County Ranking Full Width + Weekly Trend -->
+    <div class="viz-grid" style="margin-bottom: var(--space-lg);">
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <h3 class="chart-card-title">各縣市事故案件數排行（點擊長條篩選縣市）</h3>
+          <span class="badge badge-county">依件數由高至低</span>
+        </div>
+        <div class="chart-box-tall">
+          <canvas id="countyChart" aria-label="各縣市事故案件數長條圖"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <h3 class="chart-card-title">關鍵風險情境拆解與週次趨勢</h3>
+          <div class="tab-strip" role="tablist" aria-label="風險視圖切換">
+            <button type="button" id="tab-risk-bars" class="tab-btn active" onclick="switchRightPanel('risk')">風險比例拆解</button>
+            <button type="button" id="tab-weekly-chart" class="tab-btn" onclick="switchRightPanel('weekly')">週次變化趨勢</button>
+          </div>
+        </div>
+
+        <div id="panel-risk-bars" class="risk-bars-list"></div>
+
+        <div id="panel-weekly-chart" class="chart-box hidden">
+          <canvas id="weeklyChart" aria-label="週次事故趨勢圖"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Type Distribution Doughnut + Interactive Type Legend Cards -->
+    <div class="viz-grid">
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <h3 class="chart-card-title">官方事故類型視覺化比例</h3>
+          <div class="tab-strip">
+            <button type="button" id="type-mode-doughnut" class="tab-btn active" onclick="switchTypeChartMode('doughnut')">圓環比例圖</button>
+            <button type="button" id="type-mode-bar" class="tab-btn" onclick="switchTypeChartMode('bar')">橫向長條圖</button>
+          </div>
+        </div>
+        <div class="chart-box">
+          <canvas id="typeChart" aria-label="事故類型統計圖表"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <h3 class="chart-card-title">分類色碼圖例與快速篩選</h3>
+          <span class="badge badge-user">點擊圖例可連動過濾</span>
+        </div>
+        <p style="margin: 0; color: var(--on-surface-variant); font-size: 0.88rem;">
+          每類事故皆搭配高對比色碼標籤，點擊下方色塊即可鎖定或取消該類別檢視：
+        </p>
+        <div id="type-legend-cards" class="type-legend-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Safety Reminders & Critical Cases Spotlight -->
+  <section aria-label="重點安全提醒與典型案例">
+    <div class="section-open accent-black">
+      <div>
+        <span class="kicker">STEP 03 · 勤務安全重點提醒</span>
+        <h2 class="section-title">高風險警示案例與防範對策精選</h2>
+        <p class="section-sub">匯整原始統計表中有明確檢討建議與高傷害風險之個案（熱衰竭 41°C、SCBA 供氣異常、氣墊鋪設墜落、鐵皮屋頂踩踏等）。</p>
+      </div>
+    </div>
+
+    <div id="spotlight-grid" class="spotlight-grid"></div>
+  </section>
+
+  <!-- 6. Add New Incident Interactive Form -->
+  <section id="add-incident-section" aria-label="新增事故案件互動表單">
+    <div class="section-open accent-yellow">
+      <div>
+        <span class="kicker" style="background: var(--primary-container); color: var(--on-primary-container);">STEP 04 · 新增事件通報</span>
+        <h2 class="section-title">新增消防事故案件紀錄</h2>
+        <p class="section-sub">填寫下方欄位即可即時加入統計儀表板並自動儲存，所有圖表、縣市統計與明細表會立即更新。</p>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="fillSampleIncident()">
+        <i data-lucide="sparkles" width="16" height="16" aria-hidden="true"></i>
+        帶入測試範例
+      </button>
+    </div>
+
+    <form id="add-incident-form" class="form-card" onsubmit="submitIncidentForm(event)" novalidate>
+      <div class="form-grid">
+        <div class="field-group">
+          <label class="field-label" for="new-county">發生縣市 *</label>
+          <select id="new-county" class="select-control" required>
+            <option value="臺北市">臺北市</option>
+            <option value="新北市">新北市</option>
+            <option value="桃園市">桃園市</option>
+            <option value="臺中市">臺中市</option>
+            <option value="臺南市">臺南市</option>
+            <option value="高雄市">高雄市</option>
+            <option value="基隆市">基隆市</option>
+            <option value="新竹市">新竹市</option>
+            <option value="嘉義市">嘉義市</option>
+            <option value="新竹縣">新竹縣</option>
+            <option value="苗栗縣">苗栗縣</option>
+            <option value="彰化縣">彰化縣</option>
+            <option value="南投縣">南投縣</option>
+            <option value="雲林縣">雲林縣</option>
+            <option value="嘉義縣">嘉義縣</option>
+            <option value="屏東縣">屏東縣</option>
+            <option value="宜蘭縣">宜蘭縣</option>
+            <option value="花蓮縣">花蓮縣</option>
+            <option value="臺東縣">臺東縣</option>
+            <option value="澎湖縣">澎湖縣</option>
+            <option value="金門縣">金門縣</option>
+            <option value="連江縣">連江縣</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="new-type">事故類型 *</label>
+          <select id="new-type" class="select-control" onchange="syncDefaultRisk(this.value)" required>
+            <option value="車禍案件">車禍案件</option>
+            <option value="救護案件">救護案件</option>
+            <option value="救災案件">救災案件</option>
+            <option value="訓練案件">訓練案件</option>
+            <option value="執(備)勤身體不適">執(備)勤身體不適</option>
+            <option value="山搜案件">山搜案件</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="new-risk">關鍵風險情境 *</label>
+          <select id="new-risk" class="select-control" required>
+            <option value="出勤/公務車禍">出勤/公務車禍</option>
+            <option value="執勤/救援受傷">執勤/救援受傷</option>
+            <option value="突發身體不適">突發身體不適</option>
+            <option value="熱衰竭/體力透支">熱衰竭/體力透支</option>
+            <option value="設備/建物風險">設備/建物風險</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="new-date">發生日期 *</label>
+          <input id="new-date" class="input-control" type="date" value="2026-11-17" required>
+        </div>
+
+        <div class="field-group form-span-2">
+          <label class="field-label" for="new-desc">事件經過詳述 *（至少 6 個字）</label>
+          <textarea id="new-desc" class="textarea-control" placeholder="例如：○○分隊救護車執行夜間急病救護返隊途中與轉彎車輛擦撞，無人受傷" required></textarea>
+        </div>
+
+        <div class="field-group form-span-2">
+          <label class="field-label" for="new-reminder">安全提醒／防範建議（選填）</label>
+          <textarea id="new-reminder" class="textarea-control" placeholder="例如：夜間行經無號誌路口務必減速確認橫向來車，落實防禦駕駛"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <div id="form-status" class="form-status" role="status" aria-live="polite"></div>
+        <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" onclick="resetFormInputs()">清空表單</button>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="plus-circle" width="18" height="18" aria-hidden="true"></i>
+            新增至統計儀表板
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- 7. Incident Detail Ledger (Table + Card Grid Toggle) -->
+  <section aria-label="事故案件明細清單">
+    <div class="section-open accent-blue">
+      <div>
+        <span class="kicker kicker-blue">STEP 05 · 案件明細瀏覽</span>
+        <h2 class="section-title">事故案件完整紀錄 (<span id="ledger-count">62</span> 件)</h2>
+        <p class="section-sub">可切換為結構化表格或彩色卡片牆檢視，並支援依項次、日期、縣市或事故類型排序。</p>
+      </div>
+
+      <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center;">
+        <div class="tab-strip" role="tablist" aria-label="明細檢視模式">
+          <button type="button" id="view-table-btn" class="tab-btn active" onclick="switchLedgerView('table')">表格檢視</button>
+          <button type="button" id="view-cards-btn" class="tab-btn" onclick="switchLedgerView('cards')">彩色卡片牆</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <div>
+        <h3 style="margin: 0 0 var(--space-xs) 0;">目前篩選條件下沒有符合的事故案件</h3>
+        <p style="margin: 0; color: var(--on-surface-variant);">請嘗試放寬縣市、事故類型或關鍵字條件，或直接新增一筆紀錄。</p>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="clearAllFilters()">顯示全部案件</button>
+    </div>
+
+    <div id="table-container" class="table-wrap">
+      <table class="incident-table">
+        <thead>
+          <tr>
+            <th>
+              <button type="button" class="sort-btn" onclick="setSort('id')">
+                項次 <span id="sort-ind-id">↑</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-btn" onclick="setSort('type')">
+                事故類型 <span id="sort-ind-type"></span>
+              </button>
+            </th>
+            <th>風險情境</th>
+            <th>
+              <button type="button" class="sort-btn" onclick="setSort('county')">
+                縣市 <span id="sort-ind-county"></span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-btn" onclick="setSort('date')">
+                日期 <span id="sort-ind-date"></span>
+              </button>
+            </th>
+            <th>事件經過與安全提醒</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="incident-tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="cards-container" class="cards-view-grid hidden"></div>
+  </section>
+
+  <!-- Source Note -->
+  <footer class="source-footer">
+    <div>
+      <strong>資料來源：</strong>115年9月至11月5日各縣市事故案件統計（11.09.pdf），共 62 筆原始通報紀錄，另含使用者於本儀表板即時新增之紀錄。
+    </div>
+    <div id="persistence-note">資料變更會自動同步儲存於工作區狀態中。</div>
+  </footer>
+
+</main>
+
+<api-shim></api-shim>
+
+<script>
+  const SOURCE_INCIDENTS = [
+    { id: 1, type: `其他`, risk: `執勤/救援受傷`, county: `桃園市`, date: `2026-09-01`, desc: `○○分隊1隊員於車庫內整理裝備時受傷`, reminder: ``, isCustom: false },
+    { id: 2, type: `車禍案件`, risk: `出勤/公務車禍`, county: `新北市`, date: `2026-09-03`, desc: `○○分隊救護車執行救護勤務途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 3, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺中市`, date: `2026-09-03`, desc: `○○分隊1隊員執行疾病救護案時受傷`, reminder: ``, isCustom: false },
+    { id: 4, type: `車禍案件`, risk: `出勤/公務車禍`, county: `金門縣`, date: `2026-09-05`, desc: `○○分隊救護車執行急病救護勤務途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 5, type: `救護案件`, risk: `執勤/救援受傷`, county: `嘉義縣`, date: `2026-09-07`, desc: `○○分隊1隊員執行車禍救護案件時受傷`, reminder: ``, isCustom: false },
+    { id: 6, type: `車禍案件`, risk: `出勤/公務車禍`, county: `高雄市`, date: `2026-09-07`, desc: `局本部勤務車執行公務結束返局途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 7, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺中市`, date: `2026-09-08`, desc: `局本部公務車前往實驗中心洽公途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 8, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺北市`, date: `2026-09-09`, desc: `○○分隊1隊員執行救護勤務時受傷`, reminder: ``, isCustom: false },
+    { id: 9, type: `救災案件`, risk: `熱衰竭/體力透支`, county: `澎湖縣`, date: `2026-09-09`, desc: `○○分隊○○同仁執行火災勤務時身體不適送醫（消防人員撤出並整理裝備準備返隊之際，○○同仁突感頭暈與極度疲累等身體不適，遂自行至消防車旁脫除頭盔及消防衣，補充水分並倚靠車身休息。期間因體力透支與身體不適短暫暈厥倒地，致頭部眉角處撞擊受傷流血）`, reminder: `執勤前、中、後均應注意自身狀況並即時反應及落實後勤照護`, isCustom: false },
+    { id: 10, type: `車禍案件`, risk: `出勤/公務車禍`, county: `雲林縣`, date: `2026-09-10`, desc: `○○分隊駕駛口湖42前往消防局途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 11, type: `救護案件`, risk: `執勤/救援受傷`, county: `高雄市`, date: `2026-09-10`, desc: `○○分隊1隊員執行救護案件時受傷`, reminder: ``, isCustom: false },
+    { id: 12, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺北市`, date: `2026-09-11`, desc: `○○分隊駕駛後港93執行救護案件途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 13, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺中市`, date: `2026-09-11`, desc: `○○分隊救護車執行救護勤務途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 14, type: `車禍案件`, risk: `出勤/公務車禍`, county: `桃園市`, date: `2026-09-11`, desc: `○○分隊龍岡11車執行住宅火警案返隊途中發生碰撞車損事故`, reminder: ``, isCustom: false },
+    { id: 15, type: `訓練案件`, risk: `設備/建物風險`, county: `臺北市`, date: `2026-09-11`, desc: `○○分隊進行雲梯車訓練時發生車庫內擦撞車損事故`, reminder: `車輛訓練移動均應注意空間及專人指揮`, isCustom: false },
+    { id: 16, type: `車禍案件`, risk: `出勤/公務車禍`, county: `桃園市`, date: `2026-09-13`, desc: `○○分隊水庫車執行火災案出勤途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 17, type: `車禍案件`, risk: `出勤/公務車禍`, county: `桃園市`, date: `2026-09-13`, desc: `○○分隊勤務車執行消防栓檢查時發生交通事故`, reminder: ``, isCustom: false },
+    { id: 18, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺北市`, date: `2026-09-15`, desc: `○○中隊指揮車前往火災案件現場出勤途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 19, type: `車禍案件`, risk: `出勤/公務車禍`, county: `高雄市`, date: `2026-09-15`, desc: `○○分隊救護車執行救護案送醫途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 20, type: `車禍案件`, risk: `出勤/公務車禍`, county: `雲林縣`, date: `2026-09-15`, desc: `○○分隊1隊員執行車禍救護送醫途中車禍受傷`, reminder: ``, isCustom: false },
+    { id: 21, type: `執(備)勤身體不適`, risk: `突發身體不適`, county: `基隆市`, date: `2026-09-16`, desc: `指揮科1執勤員執勤時身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 22, type: `訓練案件`, risk: `突發身體不適`, county: `桃園市`, date: `2026-09-17`, desc: `○○分隊1隊員於分隊進行負重訓練時突發身體不適送醫`, reminder: `訓練循序漸進並注意身體訊號`, isCustom: false },
+    { id: 23, type: `執(備)勤身體不適`, risk: `突發身體不適`, county: `彰化縣`, date: `2026-09-18`, desc: `○○分隊1隊員於在隊備勤時突發身體異常送醫`, reminder: ``, isCustom: false },
+    { id: 24, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺北市`, date: `2026-09-19`, desc: `○○分隊1隊員執行救護勤務時受傷`, reminder: ``, isCustom: false },
+    { id: 25, type: `車禍案件`, risk: `出勤/公務車禍`, county: `苗栗縣`, date: `2026-09-22`, desc: `○○分隊救護車救護案件送醫途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 26, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺北市`, date: `2026-09-25`, desc: `○○分隊1隊員執行救護勤務時受傷`, reminder: ``, isCustom: false },
+    { id: 27, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺東縣`, date: `2026-09-25`, desc: `○○分隊1隊員執行救護勤務時受傷`, reminder: ``, isCustom: false },
+    { id: 28, type: `救災案件`, risk: `熱衰竭/體力透支`, county: `臺北市`, date: `2026-09-27`, desc: `○○分隊1隊員執行工地火災搶救勤務時身體不適送醫（北市大安區樂業街工地發生地下室火警，一名○○分隊林姓消防員在執行殘火處理與降溫勤務時，突發熱衰竭(熱中暑)，現場測得核心體溫高達41度，並伴隨躁動與意識不清）`, reminder: `落實輪替、補水及照護測量`, isCustom: false },
+    { id: 29, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺北市`, date: `2026-09-27`, desc: `○○分隊勤務車執行洽公勤務途中發生交通事故撞傷行人`, reminder: ``, isCustom: false },
+    { id: 30, type: `執(備)勤身體不適`, risk: `突發身體不適`, county: `高雄市`, date: `2026-09-29`, desc: `○○分隊1員執(備)勤時身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 31, type: `救災案件`, risk: `熱衰竭/體力透支`, county: `雲林縣`, date: `2026-09-30`, desc: `於莿桐鄉堤防14-15觀測站附近執行廢棄物火警案時1隊員疑似熱衰竭送醫`, reminder: `落實輪替、補水及照護測量`, isCustom: false },
+    { id: 32, type: `車禍案件`, risk: `出勤/公務車禍`, county: `桃園市`, date: `2026-10-02`, desc: `○○分隊水箱車前往執行火災勤務途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 33, type: `車禍案件`, risk: `出勤/公務車禍`, county: `雲林縣`, date: `2026-10-02`, desc: `○○分隊勤務車執行破門勤務出勤途中發生交通事故，致1隊員身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 34, type: `執(備)勤身體不適`, risk: `突發身體不適`, county: `臺中市`, date: `2026-10-03`, desc: `指揮中心1員備勤時身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 35, type: `山搜案件`, risk: `執勤/救援受傷`, county: `臺東縣`, date: `2026-10-03`, desc: `○○分隊1隊員執行山域事故案時受傷`, reminder: ``, isCustom: false },
+    { id: 36, type: `其他`, risk: `執勤/救援受傷`, county: `高雄市`, date: `2026-10-03`, desc: `1隊員於苓雅區執行民眾墜樓案時受傷（充氣架設救生氣墊時，該名民眾突然墜落，不慎直接砸中正在下方進行鋪設作業的消防員，導致額頭與雙肩挫傷、胸椎有1節骨裂）`, reminder: `架設時設置警戒區，專人注意墜落路徑及相關上方風險。`, isCustom: false },
+    { id: 37, type: `救災案件`, risk: `設備/建物風險`, county: `宜蘭縣`, date: `2026-10-04`, desc: `三星分隊1隊員執行火災搶救案時身體不適送醫（住宅火警救援勤務期間，發生SCBA供氣異常情形。該員立即嘗試進行故障排除，惟仍無法恢復正常供氣。後續於拔除肺力閥撤出過程中，不慎吸入濃煙，導致輕微嗆傷。）`, reminder: `強化SCBA故障應變、熟悉夥伴救援及Mayday求救、通訊等訓練`, isCustom: false },
+    { id: 38, type: `車禍案件`, risk: `出勤/公務車禍`, county: `嘉義縣`, date: `2026-10-05`, desc: `○○分隊救護車執行救護案件送醫途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 39, type: `救災案件`, risk: `突發身體不適`, county: `臺北市`, date: `2026-10-05`, desc: `○○分隊1隊員執行住宅火災案後身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 40, type: `救護案件`, risk: `執勤/救援受傷`, county: `桃園市`, date: `2026-10-05`, desc: `○○分隊1實習生執行急病救護案時受傷(T2代訓實習生)`, reminder: ``, isCustom: false },
+    { id: 41, type: `其他`, risk: `執勤/救援受傷`, county: `金門縣`, date: `2026-10-08`, desc: `○○分隊1隊員於備勤時受傷`, reminder: ``, isCustom: false },
+    { id: 42, type: `其他`, risk: `執勤/救援受傷`, county: `新北市`, date: `2026-10-10`, desc: `竹圍分隊1隊員於執行民眾跳樓案時受傷`, reminder: ``, isCustom: false },
+    { id: 43, type: `山搜案件`, risk: `執勤/救援受傷`, county: `花蓮縣`, date: `2026-10-12`, desc: `特搜大隊1隊員執行山域事故搜索時受傷`, reminder: ``, isCustom: false },
+    { id: 44, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺北市`, date: `2026-10-13`, desc: `復興91執行救護案件送醫途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 45, type: `救災案件`, risk: `設備/建物風險`, county: `花蓮縣`, date: `2026-10-16`, desc: `特搜大隊1隊員執行鐵皮屋火災過程中受傷。一名特搜大隊邱姓隊員在二樓鐵皮屋頂滅火，因鐵皮變形不慎摔落，造成尾椎骨折，送醫治療。`, reminder: `注意建物結構，避免採踏鐵皮`, isCustom: false },
+    { id: 46, type: `車禍案件`, risk: `出勤/公務車禍`, county: `基隆市`, date: `2026-10-16`, desc: `信二分隊後勤車前往住宅火災現場時發生交通事故`, reminder: ``, isCustom: false },
+    { id: 47, type: `救護案件`, risk: `執勤/救援受傷`, county: `彰化縣`, date: `2026-10-16`, desc: `溪州分隊1隊員執行急病救護案時受傷`, reminder: ``, isCustom: false },
+    { id: 48, type: `其他`, risk: `執勤/救援受傷`, county: `花蓮縣`, date: `2026-10-18`, desc: `仁里分隊1隊員執行動物救援案時受傷`, reminder: ``, isCustom: false },
+    { id: 49, type: `車禍案件`, risk: `出勤/公務車禍`, county: `新北市`, date: `2026-10-19`, desc: `安和分隊救護車執行急病救護途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 50, type: `車禍案件`, risk: `出勤/公務車禍`, county: `南投縣`, date: `2026-10-25`, desc: `埔里分隊勤務車前往支援救護勤務時發生交通事故`, reminder: ``, isCustom: false },
+    { id: 51, type: `其他`, risk: `執勤/救援受傷`, county: `基隆市`, date: `2026-10-25`, desc: `中正分隊1隊員執行落海失蹤案時受傷`, reminder: ``, isCustom: false },
+    { id: 52, type: `救災案件`, risk: `執勤/救援受傷`, county: `高雄市`, date: `2026-10-27`, desc: `永安分隊1隊員執行工廠火災案時受傷`, reminder: ``, isCustom: false },
+    { id: 53, type: `訓練案件`, risk: `執勤/救援受傷`, county: `臺東縣`, date: `2026-10-28`, desc: `大武分隊1隊員參與大隊救助隊複訓時受傷`, reminder: ``, isCustom: false },
+    { id: 54, type: `救護案件`, risk: `執勤/救援受傷`, county: `臺中市`, date: `2026-10-29`, desc: `潭子分隊1隊員執行救護案件時受傷`, reminder: ``, isCustom: false },
+    { id: 55, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺中市`, date: `2026-10-29`, desc: `東英分隊1員騎乘機車前往與會途中受傷`, reminder: ``, isCustom: false },
+    { id: 56, type: `車禍案件`, risk: `出勤/公務車禍`, county: `花蓮縣`, date: `2026-10-30`, desc: `第一大隊勤務車執行消防安全檢查勤務時發生交通事故`, reminder: ``, isCustom: false },
+    { id: 57, type: `訓練案件`, risk: `執勤/救援受傷`, county: `南投縣`, date: `2026-10-30`, desc: `中寮分隊1員參加水域訓練時受傷`, reminder: ``, isCustom: false },
+    { id: 58, type: `車禍案件`, risk: `出勤/公務車禍`, county: `嘉義縣`, date: `2026-11-02`, desc: `溪口分隊消防車前往車輛保養途中發生交通事故`, reminder: ``, isCustom: false },
+    { id: 59, type: `救災案件`, risk: `突發身體不適`, county: `桃園市`, date: `2026-11-03`, desc: `草漯分隊1員執行殘火處理勤務時身體不適送醫`, reminder: ``, isCustom: false },
+    { id: 60, type: `救災案件`, risk: `熱衰竭/體力透支`, county: `新竹縣`, date: `2026-11-04`, desc: `○○分隊1隊員執行工廠火災勤務時抽筋送醫`, reminder: ``, isCustom: false },
+    { id: 61, type: `訓練案件`, risk: `執勤/救援受傷`, county: `基隆市`, date: `2026-11-04`, desc: `信二分隊1隊員於分隊自主訓練時受傷送醫`, reminder: ``, isCustom: false },
+    { id: 62, type: `車禍案件`, risk: `出勤/公務車禍`, county: `臺北市`, date: `2026-11-05`, desc: `龍山分隊救護車執行救護勤務返隊途中發生交通事故`, reminder: ``, isCustom: false }
+  ];
+
+  const TYPE_META = {
+    '車禍案件': { badgeClass: 'badge-traffic', token: '--cat-traffic' },
+    '救護案件': { badgeClass: 'badge-ems', token: '--cat-ems' },
+    '救災案件': { badgeClass: 'badge-fire', token: '--cat-fire' },
+    '其他': { badgeClass: 'badge-other', token: '--cat-other' },
+    '訓練案件': { badgeClass: 'badge-training', token: '--cat-training' },
+    '執(備)勤身體不適': { badgeClass: 'badge-medical', token: '--cat-medical' },
+    '山搜案件': { badgeClass: 'badge-mountain', token: '--cat-mountain' }
+  };
+
+  const RISK_META = {
+    '出勤/公務車禍': { badgeClass: 'badge-risk-traffic', token: '--risk-traffic', desc: '救護車、消防車、勤務車或洽公途中碰撞' },
+    '執勤/救援受傷': { badgeClass: 'badge-risk-injury', token: '--risk-injury', desc: '現場搶救、救護搬運、山搜、訓練或整理裝備受傷' },
+    '突發身體不適': { badgeClass: 'badge-risk-health', token: '--risk-health', desc: '執(備)勤、指揮勤務或火警後身體異常送醫' },
+    '熱衰竭/體力透支': { badgeClass: 'badge-risk-heat', token: '--risk-heat', desc: '高溫火場熱衰竭(41°C)、抽筋或過度疲勞暈厥' },
+    '設備/建物風險': { badgeClass: 'badge-risk-gear', token: '--risk-gear', desc: 'SCBA 供氣異常、鐵皮屋頂塌陷、雲梯車車庫擦撞' }
+  };
+
+  let customIncidents = [];
+  let filters = {
+    search: '',
+    type: 'ALL',
+    risk: 'ALL',
+    month: 'ALL',
+    county: 'ALL',
+    reminderOnly: false
+  };
+  let sortState = { key: 'id', dir: 'asc' };
+  let rightPanelMode = 'risk';
+  let typeChartMode = 'doughnut';
+  let ledgerView = 'table';
+
+  let countyChartInstance = null;
+  let typeChartInstance = null;
+  let weeklyChartInstance = null;
+
+  function cssToken(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getAllIncidents() {
+    return SOURCE_INCIDENTS.concat(customIncidents);
+  }
+
+  function getFilteredIncidents(ignoreCounty) {
+    const q = filters.search.trim().toLowerCase();
+    return getAllIncidents().filter(function (item) {
+      if (!ignoreCounty && filters.county !== 'ALL' && item.county !== filters.county) return false;
+      if (filters.type !== 'ALL' && item.type !== filters.type) return false;
+      if (filters.risk !== 'ALL' && item.risk !== filters.risk) return false;
+      if (filters.month !== 'ALL' && !item.date.startsWith(filters.month)) return false;
+      if (filters.reminderOnly && !item.reminder && item.risk !== '熱衰竭/體力透支' && item.risk !== '設備/建物風險') return false;
+      if (q) {
+        const hay = (item.county + ' ' + item.type + ' ' + item.risk + ' ' + item.desc + ' ' + item.reminder + ' ' + item.date).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function formatDisplayDate(iso) {
+    return iso.replace(/-/g, '/');
+  }
+
+  function getWeekBucket(isoDate) {
+    const parts = isoDate.split('-').map(Number);
+    if (parts.length !== 3) return '其他';
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    const m = monday.getMonth() + 1;
+    const dd = monday.getDate();
+    return m + '/' + dd + ' 週';
+  }
+
+  function renderAll() {
+    const filtered = getFilteredIncidents(false);
+    const forCountyMatrix = getFilteredIncidents(true);
+
+    renderKpis(filtered);
+    renderCountyControls(forCountyMatrix);
+    renderCountyChart(forCountyMatrix);
+    renderTypeChartAndLegend(filtered);
+    renderRiskBars(filtered);
+    renderWeeklyChart(filtered);
+    renderSpotlights(filtered);
+    renderFilterSummary(filtered);
+    renderLedger(filtered);
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
+  function renderKpis(filtered) {
+    const totalAll = getAllIncidents().length;
+    const customCount = customIncidents.length;
+    const totalEl = document.getElementById('kpi-total');
+    const totalSubEl = document.getElementById('kpi-total-sub');
+    if (totalEl) totalEl.textContent = filtered.length + ' 件';
+    if (totalSubEl) {
+      totalSubEl.textContent = '原始 62 件 · 自訂新增 ' + customCount + ' 件（總計 ' + totalAll + ' 件）';
+    }
+
+    const trafficCount = filtered.filter(function (i) { return i.type === '車禍案件'; }).length;
+    const trafficPct = filtered.length ? ((trafficCount / filtered.length) * 100).toFixed(1) : '0.0';
+    const trafficEl = document.getElementById('kpi-traffic');
+    const trafficPctEl = document.getElementById('kpi-traffic-pct');
+    if (trafficEl) trafficEl.textContent = trafficCount + ' 件';
+    if (trafficPctEl) trafficPctEl.textContent = '佔當前範圍 ' + trafficPct + '%';
+
+    const alertCount = filtered.filter(function (i) {
+      return Boolean(i.reminder) || i.risk === '熱衰竭/體力透支' || i.risk === '設備/建物風險';
+    }).length;
+    const alertEl = document.getElementById('kpi-alert');
+    if (alertEl) alertEl.textContent = alertCount + ' 件';
+
+    const countyCounts = {};
+    filtered.forEach(function (i) {
+      countyCounts[i.county] = (countyCounts[i.county] || 0) + 1;
+    });
+    const countyEntries = Object.entries(countyCounts).sort(function (a, b) { return b[1] - a[1]; });
+    const countiesEl = document.getElementById('kpi-counties');
+    const topCountyEl = document.getElementById('kpi-top-county');
+    if (countiesEl) countiesEl.textContent = countyEntries.length + ' 縣市';
+    if (topCountyEl) {
+      topCountyEl.textContent = countyEntries.length
+        ? countyEntries[0][0] + '最多 (' + countyEntries[0][1] + ' 件)'
+        : '無符合縣市';
+    }
+  }
+
+  function renderCountyControls(items) {
+    const counts = {};
+    items.forEach(function (i) {
+      counts[i.county] = (counts[i.county] || 0) + 1;
+    });
+    const sortedCounties = Object.entries(counts).sort(function (a, b) {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0], 'zh-Hant');
+    });
+
+    const selectEl = document.getElementById('county-select');
+    if (selectEl) {
+      const prevVal = filters.county;
+      let opts = '<option value="ALL">全國各縣市（' + items.length + ' 件）</option>';
+      sortedCounties.forEach(function (pair) {
+        opts += '<option value="' + escapeHtml(pair[0]) + '">' + escapeHtml(pair[0]) + '（' + pair[1] + ' 件）</option>';
+      });
+      selectEl.innerHTML = opts;
+      selectEl.value = counts[prevVal] || prevVal === 'ALL' ? prevVal : 'ALL';
+    }
+
+    const chipsEl = document.getElementById('county-chips');
+    if (chipsEl) {
+      let html = '<button type="button" class="county-chip ' + (filters.county === 'ALL' ? 'active' : '') + '" onclick="selectCounty(\'ALL\')">'
+        + '<span>全部縣市</span><span class="county-count">' + items.length + '</span></button>';
+      sortedCounties.forEach(function (pair) {
+        const name = pair[0];
+        const count = pair[1];
+        const isActive = filters.county === name;
+        html += '<button type="button" class="county-chip ' + (isActive ? 'active' : '') + '" onclick="selectCounty(\'' + escapeHtml(name) + '\')">'
+          + '<span>' + escapeHtml(name) + '</span><span class="county-count">' + count + '</span></button>';
+      });
+      chipsEl.innerHTML = html;
+    }
+  }
+
+  function renderCountyChart(items) {
+    const canvas = document.getElementById('countyChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const counts = {};
+    items.forEach(function (i) {
+      counts[i.county] = (counts[i.county] || 0) + 1;
+    });
+    const sorted = Object.entries(counts).sort(function (a, b) {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0], 'zh-Hant');
+    });
+
+    const labels = sorted.map(function (p) { return p[0]; });
+    const data = sorted.map(function (p) { return p[1]; });
+    const outlineColor = cssToken('--outline');
+    const redColor = cssToken('--data-1');
+    const blueColor = cssToken('--data-2');
+    const yellowColor = cssToken('--primary-container');
+    const mutedColor = cssToken('--data-context');
+
+    const bgColors = labels.map(function (name, idx) {
+      if (filters.county !== 'ALL') {
+        return name === filters.county ? yellowColor : mutedColor;
+      }
+      if (idx === 0) return redColor;
+      if (idx <= 3) return blueColor;
+      return cssToken('--data-3');
+    });
+
+    if (countyChartInstance) {
+      countyChartInstance.destroy();
+    }
+
+    countyChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '事故件數',
+          data: data,
+          backgroundColor: bgColors,
+          borderColor: outlineColor,
+          borderWidth: 2,
+          borderRadius: 0
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        onClick: function (evt, elements) {
+          if (elements && elements.length > 0) {
+            const idx = elements[0].index;
+            const clickedCounty = labels[idx];
+            selectCounty(filters.county === clickedCounty ? 'ALL' : clickedCounty);
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: cssToken('--primary'),
+            titleColor: cssToken('--on-primary'),
+            bodyColor: cssToken('--on-primary'),
+            cornerRadius: 2,
+            callbacks: {
+              label: function (ctx) { return ' 事故數：' + ctx.parsed.x + ' 件（點擊可篩選）'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: outlineColor, font: { weight: '700' } },
+            grid: { color: cssToken('--outline-variant') }
+          },
+          y: {
+            ticks: { color: outlineColor, font: { weight: '700', size: 12 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  function renderTypeChartAndLegend(filtered) {
+    const types = Object.keys(TYPE_META);
+    const counts = {};
+    types.forEach(function (t) { counts[t] = 0; });
+    filtered.forEach(function (i) {
+      counts[i.type] = (counts[i.type] || 0) + 1;
+    });
+
+    const activeTypes = types.filter(function (t) { return counts[t] > 0 || filters.type === t; });
+    const labels = activeTypes;
+    const data = activeTypes.map(function (t) { return counts[t]; });
+    const colors = activeTypes.map(function (t) { return cssToken(TYPE_META[t].token); });
+    const outlineColor = cssToken('--outline');
+
+    const legendEl = document.getElementById('type-legend-cards');
+    if (legendEl) {
+      let html = '';
+      types.forEach(function (t) {
+        const c = counts[t] || 0;
+        const isActive = filters.type === t;
+        const swatchColor = cssToken(TYPE_META[t].token);
+        html += '<button type="button" class="legend-pill-btn ' + (isActive ? 'active' : '') + '" onclick="toggleTypeFilter(\'' + escapeHtml(t) + '\')">'
+          + '<span style="display:flex;align-items:center;gap:6px;"><span class="swatch-box" style="background:' + swatchColor + ';"></span>'
+          + '<span>' + escapeHtml(t) + '</span></span>'
+          + '<span class="num-cell">' + c + '</span></button>';
+      });
+      legendEl.innerHTML = html;
+    }
+
+    const canvas = document.getElementById('typeChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    if (typeChartInstance) {
+      typeChartInstance.destroy();
+    }
+
+    const isDoughnut = typeChartMode === 'doughnut';
+    typeChartInstance = new Chart(canvas.getContext('2d'), {
+      type: isDoughnut ? 'doughnut' : 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '案件數',
+          data: data,
+          backgroundColor: colors,
+          borderColor: outlineColor,
+          borderWidth: 2,
+          hoverOffset: isDoughnut ? 8 : 0
+        }]
+      },
+      options: {
+        indexAxis: isDoughnut ? 'x' : 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: isDoughnut ? '48%' : undefined,
+        onClick: function (evt, elements) {
+          if (elements && elements.length > 0) {
+            const idx = elements[0].index;
+            toggleTypeFilter(labels[idx]);
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: cssToken('--primary'),
+            titleColor: cssToken('--on-primary'),
+            bodyColor: cssToken('--on-primary'),
+            cornerRadius: 2
+          }
+        },
+        scales: isDoughnut ? {} : {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: outlineColor, font: { weight: '700' } },
+            grid: { color: cssToken('--outline-variant') }
+          },
+          y: {
+            ticks: { color: outlineColor, font: { weight: '700' } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  function renderRiskBars(filtered) {
+    const container = document.getElementById('panel-risk-bars');
+    if (!container) return;
+
+    const riskKeys = Object.keys(RISK_META);
+    const counts = {};
+    riskKeys.forEach(function (k) { counts[k] = 0; });
+    filtered.forEach(function (i) {
+      counts[i.risk] = (counts[i.risk] || 0) + 1;
+    });
+
+    const total = filtered.length || 1;
+    let html = '';
+    riskKeys.forEach(function (k) {
+      const c = counts[k] || 0;
+      const pct = Math.round((c / total) * 100);
+      const meta = RISK_META[k];
+      const fillColor = cssToken(meta.token);
+      const isActive = filters.risk === k;
+      html += '<div class="risk-bar-item ' + (isActive ? 'active' : '') + '" role="button" tabindex="0" onclick="toggleRiskFilter(\'' + escapeHtml(k) + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleRiskFilter(\'' + escapeHtml(k) + '\');}">'
+        + '<div class="risk-bar-top">'
+        + '<span><span class="badge ' + meta.badgeClass + '">' + escapeHtml(k) + '</span></span>'
+        + '<span class="num-cell">' + c + ' 件 (' + pct + '%)</span>'
+        + '</div>'
+        + '<div class="risk-track"><div class="risk-fill" style="width:' + pct + '%; background:' + fillColor + ';"></div></div>'
+        + '<div style="margin-top:4px;font-size:0.78rem;color:var(--on-surface-variant);">' + escapeHtml(meta.desc) + '</div>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function renderWeeklyChart(filtered) {
+    const canvas = document.getElementById('weeklyChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const sortedByDate = filtered.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+    const weekMap = {};
+    const weekOrder = [];
+    sortedByDate.forEach(function (i) {
+      const w = getWeekBucket(i.date);
+      if (!weekMap[w]) {
+        weekMap[w] = { traffic: 0, injury: 0, healthHeat: 0 };
+        weekOrder.push(w);
+      }
+      if (i.type === '車禍案件') {
+        weekMap[w].traffic += 1;
+      } else if (i.risk === '熱衰竭/體力透支' || i.risk === '突發身體不適' || i.risk === '設備/建物風險') {
+        weekMap[w].healthHeat += 1;
+      } else {
+        weekMap[w].injury += 1;
+      }
+    });
+
+    const outlineColor = cssToken('--outline');
+    if (weeklyChartInstance) {
+      weeklyChartInstance.destroy();
+    }
+
+    weeklyChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: weekOrder,
+        datasets: [
+          {
+            label: '車禍案件',
+            data: weekOrder.map(function (w) { return weekMap[w].traffic; }),
+            backgroundColor: cssToken('--data-1'),
+            borderColor: outlineColor,
+            borderWidth: 2
+          },
+          {
+            label: '救援/訓練受傷',
+            data: weekOrder.map(function (w) { return weekMap[w].injury; }),
+            backgroundColor: cssToken('--data-2'),
+            borderColor: outlineColor,
+            borderWidth: 2
+          },
+          {
+            label: '熱衰竭/不適/設備',
+            data: weekOrder.map(function (w) { return weekMap[w].healthHeat; }),
+            backgroundColor: cssToken('--primary-container'),
+            borderColor: outlineColor,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: outlineColor, font: { weight: '700' }, boxWidth: 14 }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: outlineColor, font: { weight: '700', size: 11 } },
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            ticks: { stepSize: 1, color: outlineColor, font: { weight: '700' } },
+            grid: { color: cssToken('--outline-variant') }
+          }
+        }
+      }
+    });
+  }
+
+  function renderSpotlights(filtered) {
+    const container = document.getElementById('spotlight-grid');
+    if (!container) return;
+
+    const alerts = filtered.filter(function (i) { return Boolean(i.reminder); });
+    const displayList = alerts.length ? alerts : getAllIncidents().filter(function (i) { return Boolean(i.reminder); });
+
+    let html = '';
+    displayList.forEach(function (item) {
+      const typeMeta = TYPE_META[item.type] || TYPE_META['其他'];
+      const riskMeta = RISK_META[item.risk] || RISK_META['執勤/救援受傷'];
+      html += '<article class="spotlight-card">'
+        + '<div class="spotlight-card-header">'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+        + '<span class="badge ' + typeMeta.badgeClass + '">' + escapeHtml(item.type) + '</span>'
+        + '<span class="badge ' + riskMeta.badgeClass + '">' + escapeHtml(item.risk) + '</span>'
+        + '</div>'
+        + '<span class="badge badge-county">' + escapeHtml(item.county) + ' · ' + escapeHtml(formatDisplayDate(item.date)) + '</span>'
+        + '</div>'
+        + '<p class="spotlight-desc"><strong>#' + item.id + '</strong> ' + escapeHtml(item.desc) + '</p>'
+        + '<div class="reminder-box">安全提醒：' + escapeHtml(item.reminder) + '</div>'
+        + '</article>';
+    });
+    container.innerHTML = html;
+  }
+
+  function renderFilterSummary(filtered) {
+    const summaryEl = document.getElementById('filter-status-summary');
+    const countEl = document.getElementById('ledger-count');
+    if (countEl) countEl.textContent = String(filtered.length);
+
+    if (!summaryEl) return;
+    const parts = [];
+    if (filters.county !== 'ALL') parts.push('縣市：' + filters.county);
+    if (filters.type !== 'ALL') parts.push('類型：' + filters.type);
+    if (filters.risk !== 'ALL') parts.push('風險：' + filters.risk);
+    if (filters.month !== 'ALL') parts.push('月份：' + filters.month.replace('-', '年') + '月');
+    if (filters.reminderOnly) parts.push('僅顯示高風險／提醒案');
+    if (filters.search.trim()) parts.push('關鍵字：「' + filters.search.trim() + '」');
+
+    summaryEl.textContent = parts.length
+      ? '篩選條件（' + parts.join(' · ') + '）→ 共 ' + filtered.length + ' 件'
+      : '目前顯示：全部 ' + filtered.length + ' 件事故紀錄';
+  }
+
+  function getSortedList(list) {
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    return list.slice().sort(function (a, b) {
+      if (sortState.key === 'id') return (a.id - b.id) * dir;
+      if (sortState.key === 'date') return a.date.localeCompare(b.date) * dir || (a.id - b.id);
+      if (sortState.key === 'county') return a.county.localeCompare(b.county, 'zh-Hant') * dir;
+      if (sortState.key === 'type') return a.type.localeCompare(b.type, 'zh-Hant') * dir;
+      return (a.id - b.id) * dir;
+    });
+  }
+
+  function renderLedger(filtered) {
+    const emptyEl = document.getElementById('empty-state');
+    const tableWrap = document.getElementById('table-container');
+    const cardsWrap = document.getElementById('cards-container');
+    const tbody = document.getElementById('incident-tbody');
+
+    if (!filtered.length) {
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      if (tableWrap) tableWrap.classList.add('hidden');
+      if (cardsWrap) cardsWrap.classList.add('hidden');
+      return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+    if (ledgerView === 'table') {
+      if (tableWrap) tableWrap.classList.remove('hidden');
+      if (cardsWrap) cardsWrap.classList.add('hidden');
+    } else {
+      if (tableWrap) tableWrap.classList.add('hidden');
+      if (cardsWrap) cardsWrap.classList.remove('hidden');
+    }
+
+    const sorted = getSortedList(filtered);
+
+    if (tbody) {
+      let rowsHtml = '';
+      sorted.forEach(function (item) {
+        const typeMeta = TYPE_META[item.type] || TYPE_META['其他'];
+        const riskMeta = RISK_META[item.risk] || RISK_META['執勤/救援受傷'];
+        rowsHtml += '<tr class="' + (item.isCustom ? 'is-custom-row' : '') + '">'
+          + '<td class="num-cell">#' + item.id + (item.isCustom ? ' <span class="badge badge-user">新增</span>' : '') + '</td>'
+          + '<td><span class="badge ' + typeMeta.badgeClass + '">' + escapeHtml(item.type) + '</span></td>'
+          + '<td><span class="badge ' + riskMeta.badgeClass + '">' + escapeHtml(item.risk) + '</span></td>'
+          + '<td><span class="badge badge-county">' + escapeHtml(item.county) + '</span></td>'
+          + '<td class="num-cell">' + escapeHtml(formatDisplayDate(item.date)) + '</td>'
+          + '<td>' + escapeHtml(item.desc)
+          + (item.reminder ? '<div style="margin-top:6px;padding:4px 8px;background:var(--primary-container);border:2px solid var(--outline);font-weight:700;font-size:0.82rem;">提醒：' + escapeHtml(item.reminder) + '</div>' : '')
+          + '</td>'
+          + '<td>'
+          + (item.isCustom
+            ? '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCustomIncident(' + item.id + ')">刪除</button>'
+            : '<span style="color:var(--on-surface-variant);font-size:0.8rem;">原始資料</span>')
+          + '</td>'
+          + '</tr>';
+      });
+      tbody.innerHTML = rowsHtml;
+    }
+
+    if (cardsWrap) {
+      let cardsHtml = '';
+      sorted.forEach(function (item) {
+        const typeMeta = TYPE_META[item.type] || TYPE_META['其他'];
+        const riskMeta = RISK_META[item.risk] || RISK_META['執勤/救援受傷'];
+        cardsHtml += '<article class="case-card ' + (item.isCustom ? 'is-custom' : '') + '">'
+          + '<div class="case-card-top">'
+          + '<span class="num-cell">#' + item.id + (item.isCustom ? ' <span class="badge badge-user">新增</span>' : '') + '</span>'
+          + '<span class="num-cell">' + escapeHtml(formatDisplayDate(item.date)) + '</span>'
+          + '</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+          + '<span class="badge ' + typeMeta.badgeClass + '">' + escapeHtml(item.type) + '</span>'
+          + '<span class="badge ' + riskMeta.badgeClass + '">' + escapeHtml(item.risk) + '</span>'
+          + '<span class="badge badge-county">' + escapeHtml(item.county) + '</span>'
+          + '</div>'
+          + '<p style="margin:0;font-size:0.92rem;">' + escapeHtml(item.desc) + '</p>'
+          + (item.reminder ? '<div class="reminder-box">提醒：' + escapeHtml(item.reminder) + '</div>' : '')
+          + (item.isCustom ? '<div><button type="button" class="btn btn-danger btn-sm" onclick="deleteCustomIncident(' + item.id + ')">刪除此筆</button></div>' : '')
+          + '</article>';
+      });
+      cardsWrap.innerHTML = cardsHtml;
+    }
+  }
+
+  /* Interaction Handlers (Hoisted function declarations) */
+  function selectCounty(county) {
+    filters.county = county;
+    const sel = document.getElementById('county-select');
+    if (sel) sel.value = county;
+    renderAll();
+  }
+
+  function onCountySelectChange(val) {
+    filters.county = val;
+    renderAll();
+  }
+
+  function onFilterInput() {
+    const searchEl = document.getElementById('search-input');
+    const typeEl = document.getElementById('type-select');
+    const riskEl = document.getElementById('risk-select');
+    const monthEl = document.getElementById('month-select');
+
+    filters.search = searchEl ? searchEl.value : '';
+    filters.type = typeEl ? typeEl.value : 'ALL';
+    filters.risk = riskEl ? riskEl.value : 'ALL';
+    filters.month = monthEl ? monthEl.value : 'ALL';
+    renderAll();
+  }
+
+  function quickFilterType(type) {
+    filters.type = filters.type === type ? 'ALL' : type;
+    const typeEl = document.getElementById('type-select');
+    if (typeEl) typeEl.value = filters.type;
+    renderAll();
+  }
+
+  function toggleTypeFilter(type) {
+    quickFilterType(type);
+  }
+
+  function toggleRiskFilter(risk) {
+    filters.risk = filters.risk === risk ? 'ALL' : risk;
+    const riskEl = document.getElementById('risk-select');
+    if (riskEl) riskEl.value = filters.risk;
+    renderAll();
+  }
+
+  function toggleReminderOnly() {
+    filters.reminderOnly = !filters.reminderOnly;
+    const btn = document.getElementById('reminder-filter-btn');
+    if (btn) btn.classList.toggle('active', filters.reminderOnly);
+    renderAll();
+  }
+
+  function clearAllFilters() {
+    filters = { search: '', type: 'ALL', risk: 'ALL', month: 'ALL', county: 'ALL', reminderOnly: false };
+    const s = document.getElementById('search-input');
+    const t = document.getElementById('type-select');
+    const r = document.getElementById('risk-select');
+    const m = document.getElementById('month-select');
+    const c = document.getElementById('county-select');
+    const rb = document.getElementById('reminder-filter-btn');
+    if (s) s.value = '';
+    if (t) t.value = 'ALL';
+    if (r) r.value = 'ALL';
+    if (m) m.value = 'ALL';
+    if (c) c.value = 'ALL';
+    if (rb) rb.classList.remove('active');
+    renderAll();
+  }
+
+  function switchRightPanel(mode) {
+    rightPanelMode = mode;
+    const riskBtn = document.getElementById('tab-risk-bars');
+    const weekBtn = document.getElementById('tab-weekly-chart');
+    const riskPanel = document.getElementById('panel-risk-bars');
+    const weekPanel = document.getElementById('panel-weekly-chart');
+
+    if (mode === 'risk') {
+      if (riskBtn) riskBtn.classList.add('active');
+      if (weekBtn) weekBtn.classList.remove('active');
+      if (riskPanel) riskPanel.classList.remove('hidden');
+      if (weekPanel) weekPanel.classList.add('hidden');
+    } else {
+      if (riskBtn) riskBtn.classList.remove('active');
+      if (weekBtn) weekBtn.classList.add('active');
+      if (riskPanel) riskPanel.classList.add('hidden');
+      if (weekPanel) weekPanel.classList.remove('hidden');
+      renderWeeklyChart(getFilteredIncidents(false));
+    }
+  }
+
+  function switchTypeChartMode(mode) {
+    typeChartMode = mode;
+    const dBtn = document.getElementById('type-mode-doughnut');
+    const bBtn = document.getElementById('type-mode-bar');
+    if (dBtn) dBtn.classList.toggle('active', mode === 'doughnut');
+    if (bBtn) bBtn.classList.toggle('active', mode === 'bar');
+    renderTypeChartAndLegend(getFilteredIncidents(false));
+  }
+
+  function switchLedgerView(mode) {
+    ledgerView = mode;
+    const tBtn = document.getElementById('view-table-btn');
+    const cBtn = document.getElementById('view-cards-btn');
+    if (tBtn) tBtn.classList.toggle('active', mode === 'table');
+    if (cBtn) cBtn.classList.toggle('active', mode === 'cards');
+    renderLedger(getFilteredIncidents(false));
+  }
+
+  function setSort(key) {
+    if (sortState.key === key) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.key = key;
+      sortState.dir = 'asc';
+    }
+    ['id', 'type', 'county', 'date'].forEach(function (k) {
+      const ind = document.getElementById('sort-ind-' + k);
+      if (ind) ind.textContent = sortState.key === k ? (sortState.dir === 'asc' ? '↑' : '↓') : '';
+    });
+    renderLedger(getFilteredIncidents(false));
+  }
+
+  function scrollToForm() {
+    const sec = document.getElementById('add-incident-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const descEl = document.getElementById('new-desc');
+    if (descEl) setTimeout(function () { descEl.focus(); }, 300);
+  }
+
+  function syncDefaultRisk(type) {
+    const riskEl = document.getElementById('new-risk');
+    if (!riskEl) return;
+    if (type === '車禍案件') riskEl.value = '出勤/公務車禍';
+    else if (type === '執(備)勤身體不適') riskEl.value = '突發身體不適';
+    else riskEl.value = '執勤/救援受傷';
+  }
+
+  function fillSampleIncident() {
+    const countyEl = document.getElementById('new-county');
+    const typeEl = document.getElementById('new-type');
+    const riskEl = document.getElementById('new-risk');
+    const dateEl = document.getElementById('new-date');
+    const descEl = document.getElementById('new-desc');
+    const remEl = document.getElementById('new-reminder');
+    const statusEl = document.getElementById('form-status');
+
+    if (countyEl) countyEl.value = '臺南市';
+    if (typeEl) typeEl.value = '救災案件';
+    if (riskEl) riskEl.value = '設備/建物風險';
+    if (dateEl) dateEl.value = '2026-11-12';
+    if (descEl) descEl.value = '永康分隊1隊員執行工廠火警搶救勤務時，發現背負式空氣呼吸器壓力錶管線鬆脫，立即啟動夥伴互助安全撤離。';
+    if (remEl) remEl.value = '入室前落實雙人互檢裝備氣密與管線接頭鎖固。';
+    if (statusEl) {
+      statusEl.className = 'form-status';
+      statusEl.textContent = '已帶入範例內容，可直接點擊「新增至統計儀表板」送出。';
+    }
+  }
+
+  function resetFormInputs() {
+    const descEl = document.getElementById('new-desc');
+    const remEl = document.getElementById('new-reminder');
+    const statusEl = document.getElementById('form-status');
+    if (descEl) descEl.value = '';
+    if (remEl) remEl.value = '';
+    if (statusEl) {
+      statusEl.className = 'form-status';
+      statusEl.textContent = '';
+    }
+  }
+
+  async function persistState() {
+    if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === 'function') {
+      try {
+        await window.notebookAppApi.setAppState({ customIncidents: customIncidents });
+      } catch (err) {
+        console.warn('State save error:', err);
+      }
+    }
+  }
+
+  async function submitIncidentForm(event) {
+    event.preventDefault();
+    const countyEl = document.getElementById('new-county');
+    const typeEl = document.getElementById('new-type');
+    const riskEl = document.getElementById('new-risk');
+    const dateEl = document.getElementById('new-date');
+    const descEl = document.getElementById('new-desc');
+    const remEl = document.getElementById('new-reminder');
+    const statusEl = document.getElementById('form-status');
+
+    const county = countyEl ? countyEl.value : '臺北市';
+    const type = typeEl ? typeEl.value : '其他';
+    const risk = riskEl ? riskEl.value : '執勤/救援受傷';
+    const date = dateEl ? dateEl.value : '2026-11-17';
+    const desc = descEl ? descEl.value.trim() : '';
+    const reminder = remEl ? remEl.value.trim() : '';
+
+    if (desc.length < 6) {
+      if (statusEl) {
+        statusEl.className = 'form-status is-error';
+        statusEl.textContent = '無法新增：請輸入至少 6 個字的事件經過詳述。';
+      }
+      if (descEl) descEl.focus();
+      return;
+    }
+
+    if (!date) {
+      if (statusEl) {
+        statusEl.className = 'form-status is-error';
+        statusEl.textContent = '無法新增：請選擇發生日期。';
+      }
+      return;
+    }
+
+    const maxId = getAllIncidents().reduce(function (m, item) { return Math.max(m, item.id); }, 62);
+    const newEntry = {
+      id: maxId + 1,
+      type: type,
+      risk: risk,
+      county: county,
+      date: date,
+      desc: desc,
+      reminder: reminder,
+      isCustom: true
+    };
+
+    customIncidents.push(newEntry);
+    await persistState();
+    resetFormInputs();
+    if (statusEl) {
+      statusEl.className = 'form-status is-success';
+      statusEl.textContent = '已成功新增 #' + newEntry.id + '（' + county + ' · ' + type + '）並同步更新統計！';
+    }
+    renderAll();
+  }
+
+  async function deleteCustomIncident(id) {
+    customIncidents = customIncidents.filter(function (item) { return item.id !== id; });
+    await persistState();
+    renderAll();
+  }
+
+  async function handleResetCustom(btn) {
+    if (!customIncidents.length) {
+      const statusEl = document.getElementById('form-status');
+      if (statusEl) {
+        statusEl.className = 'form-status';
+        statusEl.textContent = '目前沒有自訂新增的紀錄需要重設。';
+      }
+      return;
+    }
+    if (btn.dataset.armed !== 'true') {
+      btn.dataset.armed = 'true';
+      btn.textContent = '再點一次確認清空 (' + customIncidents.length + ' 筆)';
+      setTimeout(function () {
+        if (btn.dataset.armed === 'true') {
+          btn.dataset.armed = 'false';
+          btn.innerHTML = '<i data-lucide="rotate-ccw" width="18" height="18" aria-hidden="true"></i> 重設新增紀錄';
+          if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        }
+      }, 4000);
+      return;
+    }
+    btn.dataset.armed = 'false';
+    btn.innerHTML = '<i data-lucide="rotate-ccw" width="18" height="18" aria-hidden="true"></i> 重設新增紀錄';
+    customIncidents = [];
+    await persistState();
+    renderAll();
+  }
+
+  function exportCsv() {
+    const rows = getSortedList(getFilteredIncidents(false));
+    const header = ['項次', '事故類型', '關鍵風險情境', '縣市', '日期', '事件經過', '安全提醒', '資料來源'];
+    const csvLines = [header.join(',')];
+    rows.forEach(function (r) {
+      const cols = [
+        r.id,
+        r.type,
+        r.risk,
+        r.county,
+        formatDisplayDate(r.date),
+        r.desc,
+        r.reminder || '',
+        r.isCustom ? '使用者新增' : '原始統計'
+      ].map(function (val) {
+        return '"' + String(val).replace(/"/g, '""') + '"';
+      });
+      csvLines.push(cols.join(','));
+    });
+
+    const csvContent = '\uFEFF' + csvLines.join('\n');
+    if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === 'function') {
+      window.notebookAppApi.triggerFileDownload({
+        content: csvContent,
+        contentType: 'text/csv',
+        encoding: 'UTF-8',
+        filename: 'fire-incidents-stats.csv'
+      });
+    } else {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fire-incidents-stats.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function initDashboard() {
+    if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === 'function') {
+      try {
+        const saved = await window.notebookAppApi.getAppState();
+        if (saved && Array.isArray(saved.customIncidents)) {
+          customIncidents = saved.customIncidents;
+        }
+      } catch (err) {
+        console.warn('State load error:', err);
+      }
+    }
+
+    renderAll();
+
+    if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === 'function') {
+      window.notebookAppApi.notifyAppReady();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body>
+</html>
